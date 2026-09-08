@@ -1,0 +1,41 @@
+import pyxel
+
+class Personagem:
+    def __init__(self,x,y,largura,altura,cor):
+        self.x = x
+        self.y = y
+        self.largura = largura
+        self.altura = altura
+        self.cor = cor
+
+    def draw(self):
+        pyxel.rect(self.x, self.y, self.largura, self.altura, self.cor)
+
+class Jogo:
+    def __init__(self):
+        pyxel.init(256, 140, title="Jogo")
+        
+        
+        pyxel.run(self.update, self.draw)
+
+    def update(self):
+        self.visible = True
+        
+        pyxel.mouse(self.visible)
+        mousex = pyxel.mouse_x
+        mousey = pyxel.mouse_y
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            print(mousex)
+            print(mousey)
+            if mousex > 105 and mousex < 125 and mousey > 65 and mousey < 75:
+                print('oi')
+            if mousex > 105 and mousex < 115 and mousey > 75 and mousey < 85:
+                print('tchau')
+            if mousex > 105 and mousex < 115 and mousey > 85 and mousey < 95:
+                pyxel.quit()
+
+    def draw(self):
+        pyxel.cls(0)
+        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
+        
+Jogo()
