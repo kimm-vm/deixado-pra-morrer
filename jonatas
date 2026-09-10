@@ -15,20 +15,10 @@ class Jogo:
     def __init__(self):
         pyxel.init(256, 140, title="Jogo")
         self.personagem = Personagem(123,70,10,10,8)
+        self.vx, self.vy = 0, 0
+        self.atirar = False
         
         pyxel.run(self.update, self.draw)
-
-    def atirar(self):
-        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            pyxel.circ(self.personagem.x,self.personagem.y,3,1)
-#        if mousex > self.personagem.x:
-#            vx += 1
-#        else:
-#            vx -= 1
-#        if mousey > self.personagem.y:
-#            vy += 1
-#        else:
-#            vy -= 1
 
     def mover(self):
         if pyxel.btn(pyxel.KEY_W):
@@ -40,14 +30,41 @@ class Jogo:
         if pyxel.btn(pyxel.KEY_D):
             self.personagem.x += 1
 
+    def tiro(self,x,y, vx, vy):
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+
+        if pyxel.mouse_x > self.x:
+            self.vx += 1
+        else:
+            self.vx -= 1
+        if pyxel.mouse_y > self.y:
+            self.vy += 1
+        else:
+            self.vy -= 1
+
+        pyxel.circ(self.x+self.vx,self.y+self.vy,3,8)
+
+        if self.x + self.vx == pyxel.mouse_x and self.y + self.vy == pyxel.mouse_y:
+            return vx, vy, False
+        return vx, vy, True
+
+
     def update(self):
         self.visible = True
         self.mover()
-        self.atirar()
         pyxel.mouse(self.visible)
-        mousex = pyxel.mouse_x
-        mousey = pyxel.mouse_y
+        self.mousex = pyxel.mouse_x
+        self.mousey = pyxel.mouse_y
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            self.atirar = True
 
+        if self.atirar:
+            aux, temp, self.atirar = self.tiro(self.personagem.x,self.personagem.y,self.vx,self.vy)
+            self.vx = aux
+            self.vy = temp
     def draw(self):
         pyxel.cls(0)
 #        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
