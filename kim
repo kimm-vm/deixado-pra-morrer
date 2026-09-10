@@ -22,20 +22,21 @@ class Jogo:
         self.visible = True
         
         pyxel.mouse(self.visible)
-        mousex = pyxel.mouse_x
-        mousey = pyxel.mouse_y
+        self.mousex = pyxel.mouse_x
+        self.mousey = pyxel.mouse_y
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            print(mousex)
-            print(mousey)
-            if mousex > 105 and mousex < 125 and mousey > 65 and mousey < 75:
-                print('oi')
-            if mousex > 105 and mousex < 115 and mousey > 75 and mousey < 85:
-                print('tchau')
-            if mousex > 105 and mousex < 115 and mousey > 85 and mousey < 95:
-                pyxel.quit()
+            print(self.mousex)
+            print(self.mousey)
+        if self.mousex > 105 and self.mousex < 128 and self.mousey > 65 and self.mousey < 78:
+            pass
+        if self.mousex > 105 and self.mousex < 155 and self.mousey > 78 and self.mousey < 87:
+            pass
+        if self.mousex > 105 and self.mousex < 125 and self.mousey > 95 and self.mousey < 110:
+            pyxel.quit()
+            
 
     def draw(self):
         pyxel.cls(0)
         pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
-        
+
 Jogo()
