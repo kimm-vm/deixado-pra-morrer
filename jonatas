@@ -16,6 +16,7 @@ class Jogo:
         pyxel.init(256, 140, title="Jogo")
         self.personagem = Personagem(123,70,10,10,8)
         self.vx, self.vy = 0, 0
+        self.mousey, self.mousex = 0, 0
         self.atirar = False
         
         pyxel.run(self.update, self.draw)
@@ -30,25 +31,24 @@ class Jogo:
         if pyxel.btn(pyxel.KEY_D):
             self.personagem.x += 1
 
-    def tiro(self,x,y, vx, vy):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-
-        if pyxel.mouse_x > self.x:
-            self.vx += 1
+    def tiro(self,x,y, vx, vy, mousex, mousey):
+        distancia = (((mousex - x)**2+(mousey-y)**2))**(1/2)
+        if mousex > x and not (x + vx == mousex):
+            vx += ((mousex+x)/distancia)
+        elif mousex < x and not (x + vx == mousex):
+            vx -= (mousex + x)/distancia
         else:
-            self.vx -= 1
-        if pyxel.mouse_y > self.y:
-            self.vy += 1
+            pass
+
+        if mousey > y and not (y + vy == mousey):
+            vy += (mousey+y)/distancia
+        elif mousey < y and not (y + vy == mousey):
+            vy -= (mousey+y)/distancia
         else:
-            self.vy -= 1
+            pass
 
-        pyxel.circ(self.x+self.vx,self.y+self.vy,3,8)
-
-        if self.x + self.vx == pyxel.mouse_x and self.y + self.vy == pyxel.mouse_y:
-            return vx, vy, False
+        if abs(x + vx) >= mousex and abs(y + vy) >= mousey:
+            return 0, 0, False
         return vx, vy, True
 
 
@@ -56,17 +56,21 @@ class Jogo:
         self.visible = True
         self.mover()
         pyxel.mouse(self.visible)
-        self.mousex = pyxel.mouse_x
-        self.mousey = pyxel.mouse_y
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
             self.atirar = True
+            self.mousex = pyxel.mouse_x
+            self.mousey = pyxel.mouse_y
 
         if self.atirar:
-            aux, temp, self.atirar = self.tiro(self.personagem.x,self.personagem.y,self.vx,self.vy)
+            aux, temp, self.atirar = self.tiro(self.personagem.x,self.personagem.y,self.vx,self.vy, self.mousex, self.mousey)
             self.vx = aux
             self.vy = temp
+
     def draw(self):
         pyxel.cls(0)
+        if self.atirar:
+            pyxel.circ(self.personagem.x+self.vx,self.personagem.y+self.vy,3,8)
+
 #        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
         self.personagem.draw()
 Jogo()
