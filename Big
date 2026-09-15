@@ -1,0 +1,100 @@
+import pyxel
+class Personagem:
+    def __init__(self ,x ,y , largura, altura, cor, spritel, spritec):
+        self.x1=x
+        self.y1=y
+        self.largura=largura
+        self.altura=altura
+        self.cor = cor
+        self.spritel = spritel #linha
+        self.spritec = spritec #coluna
+
+        #animacao
+        self.frame_atual = 0
+        self.cont = 0
+        self.velocidade = 5
+        self.andando = False
+        self.olhando_esquerda = False
+        self.direcao = "baixo"
+
+ 
+    def mover(self,dx,dy):
+        self.x1 += dx
+        self.y1 += dy
+
+        self.andando = (dx != 0 or dy != 0)
+        if dy < 0:
+            self.direcao = "cima"
+        elif dy > 0:
+            self.direcao = "baixo"
+        elif dx != 0:
+            self.direcao = "lado"
+
+
+        if dx < 0:
+            self.olhando_esquerda = True
+        elif dx > 0:
+            self.olhando_esquerda = False
+
+        self.animar()
+
+    def animar(self):
+        if self.andando == True: 
+            self.cont += 1
+            if self.cont == self.velocidade:
+                self.cont = 0
+                self.frame_atual = (self.frame_atual + 1) % self.spritec
+
+        else:
+            self.frame_atual = 0 
+        
+    def draw(self):
+        u = self.frame_atual * self.spritel
+
+        if self.direcao == "baixo":
+            v = 0
+        elif self.direcao == "cima":
+            v = self.spritel
+        else:
+            v = self.spritel * 2
+
+        if (self.direcao == "lado" and self.olhando_esquerda):
+            largura = -self.spritel 
+        else:
+            largura = self.spritel    #faz virar para o lado esquerdo direito!
+
+        pyxel.blt(self.x1, self.y1, 0, u, v, largura, self.spritel, self.cor)                     
+                  
+class Jogo:
+    def __init__(self):
+        pyxel.init(256, 150, "Deixado Para Morrer", fps=30)
+        
+        pyxel.images[0].load(0, 0, "personagem.png")
+
+        self.seguranca = Personagem(10, 10, 20, 20, 8, 20, 4)
+        
+               
+        pyxel.run(self.update,self.draw)
+    
+    def mover(self,obj,up,down,left,right):
+        dx=0
+        dy=0
+        if pyxel.btn(up):
+            dy = -1
+        if pyxel.btn(down):
+            dy = 1
+        if pyxel.btn(left):
+            dx = -1
+        if pyxel.btn(right):
+            dx = 1
+        obj.mover(dx,dy)
+         
+    def update(self):
+        self.mover(self.seguranca  ,pyxel.KEY_W,pyxel.KEY_S,pyxel.KEY_A,pyxel.KEY_D)
+        
+    def draw(self):
+        pyxel.cls(3)
+        self.seguranca.draw()
+Jogo()
+    
+    
