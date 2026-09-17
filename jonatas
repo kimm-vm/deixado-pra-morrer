@@ -1,4 +1,5 @@
 import pyxel
+import math
 
 class Personagem:
     def __init__(self,x,y,largura,altura,cor):
@@ -11,13 +12,44 @@ class Personagem:
     def draw(self):
         pyxel.rect(self.x, self.y, self.largura, self.altura, self.cor)
 
+class Tiro:
+    def __init__(self,x,y, vx, vy, mousex, mousey):
+        self.vx, self.vy = 0, 0
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.mousex = mousex
+        self.mousey = mousey
+
+    def update(self):
+        self.distancia = math.sqrt(abs(((self.mousex - self.x)**2+(self.mousey-self.y)**2)))
+        if self.mousex > self.x:
+            self.vx += (abs(self.mousex-self.x)/self.distancia)*4
+        elif self.mousex < self.x:
+            self.vx -= (abs(self.mousex-self.x)/self.distancia)*4
+        else:
+            pass
+
+        if self.mousey > self.y:
+            self.vy += (abs(self.mousey-self.y)/self.distancia)*4
+        elif self.mousey < self.y:
+            self.vy -= (abs(self.mousey-self.y)/self.distancia)*4
+        else:
+            pass
+
+        if (self.x + self.vx) >= 256 or (self.x + self.vx) <= 0 or (self.y + self.vy) <= 0 or (self.y + self.vy) >= 150:
+            return 0, 0, False
+        return self.vx, self.vy, True
+
+
 class Jogo:
     def __init__(self):
-        pyxel.init(256, 140, title="Jogo")
+        pyxel.init(256, 150, title="Jogo")
         self.personagem = Personagem(123,70,10,10,8)
-        self.vx, self.vy = 0, 0
+
         self.mousey, self.mousex = 0, 0
-        self.atirar = False
+        self.atirando = False
         
         pyxel.run(self.update, self.draw)
 
@@ -31,46 +63,28 @@ class Jogo:
         if pyxel.btn(pyxel.KEY_D):
             self.personagem.x += 1
 
-    def tiro(self,x,y, vx, vy, mousex, mousey):
-        distancia = (((mousex - x)**2+(mousey-y)**2))**(1/2)
-        if mousex > x and not (x + vx == mousex):
-            vx += ((mousex+x)/distancia)
-        elif mousex < x and not (x + vx == mousex):
-            vx -= (mousex + x)/distancia
-        else:
-            pass
-
-        if mousey > y and not (y + vy == mousey):
-            vy += (mousey+y)/distancia
-        elif mousey < y and not (y + vy == mousey):
-            vy -= (mousey+y)/distancia
-        else:
-            pass
-
-        if abs(x + vx) >= mousex and abs(y + vy) >= mousey:
-            return 0, 0, False
-        return vx, vy, True
-
-
     def update(self):
         self.visible = True
         self.mover()
         pyxel.mouse(self.visible)
-        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.atirar = True
+        if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
+            self.atirando = True
             self.mousex = pyxel.mouse_x
             self.mousey = pyxel.mouse_y
 
-        if self.atirar:
-            aux, temp, self.atirar = self.tiro(self.personagem.x,self.personagem.y,self.vx,self.vy, self.mousex, self.mousey)
+        if self.atirando:
+            aux, temp, self.atirando = Tiro(self.personagem.x,self.personagem.y,self.vx,self.vy, self.mousex, self.mousey)
             self.vx = aux
             self.vy = temp
 
     def draw(self):
         pyxel.cls(0)
-        if self.atirar:
-            pyxel.circ(self.personagem.x+self.vx,self.personagem.y+self.vy,3,8)
+
+        self.personagem.draw()
+
+        if self.atirando:
+            pyxel.circ(self.personagem.x+self.vx,self.personagem.y+self.vy,1,7)
 
 #        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
-        self.personagem.draw()
+
 Jogo()
