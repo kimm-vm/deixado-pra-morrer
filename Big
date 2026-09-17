@@ -1,4 +1,6 @@
 import pyxel
+import math
+
 class Personagem:
     def __init__(self ,x ,y , largura, altura, cor, spritel, spritec):
         self.x1=x
@@ -12,7 +14,7 @@ class Personagem:
         #animacao
         self.frame_atual = 0
         self.cont = 0
-        self.velocidade = 5
+        self.velocidade = 6
         self.andando = False
         self.olhando_esquerda = False
         self.direcao = "baixo"
@@ -64,15 +66,58 @@ class Personagem:
             largura = self.spritel    #faz virar para o lado esquerdo direito!
 
         pyxel.blt(self.x1, self.y1, 0, u, v, largura, self.spritel, self.cor)                     
-                  
+
+
+class Zumbi(Personagem):
+    def __init__(self, x, y, largura, altura, cor, spritel, spritec, velocidademov):
+        Personagem.__init__(self, x, y, largura, altura, cor, spritel, spritec)   #essa linha serve para herdar tudo da classe personagem, sem ter q escrever tudo dnv
+        self.velocidademov = velocidademov
+
+
+    def seguir(self, alvo):
+        dx = alvo.x1 - self.x1
+        dy = alvo.y1 - self.y1
+
+        distancia = math.hypot(dx, dy)    #hypot calcula a hopotenusa das coordenadas
+
+        if distancia > 1:
+            dx = (dx / distancia) * self.velocidademov
+            dy = (dy / distancia) * self.velocidademov
+        else:
+            dx = 0
+            dy = 0
+
+        self.mover(dx, dy)
+
+    def draw(self):     #tentativa de fazer os sprites dos zumbis funcionarem!
+        u = self.frame_atual * self.spritel
+
+        if self.direcao == "baixo":
+            v = 0
+        elif self.direcao == "cima":
+            v = self.spritel
+        else:
+            v = self.spritel * 2
+
+        if (self.direcao == "lado" and self.olhando_esquerda):
+            largura = -self.spritel 
+        else:
+            largura = self.spritel    #faz virar para o lado esquerdo direito!
+
+        pyxel.blt(self.x1, self.y1, 1, u, v, largura, self.spritel, self.cor)  #e so colocar o valor 1, para usar a outra biblioteca de imagem
+
+
 class Jogo:
     def __init__(self):
         pyxel.init(256, 150, "Deixado Para Morrer", fps=30)
-        
         pyxel.images[0].load(0, 0, "personagem.png")
+        pyxel.images[1].load(0, 0, "zumbis.png")
+
+
+        self.estado = "menu"
 
         self.seguranca = Personagem(10, 10, 20, 20, 8, 20, 4)
-        
+        self.zumbi = Zumbi(200, 100, 20, 20, 8, 20, 4, 0.7)
                
         pyxel.run(self.update,self.draw)
     
@@ -88,13 +133,58 @@ class Jogo:
         if pyxel.btn(right):
             dx = 1
         obj.mover(dx,dy)
-         
-    def update(self):
+
+    def update_menu(self):
+        self.visible = True
+                              
+        pyxel.mouse(self.visible)
+        mousex = pyxel.mouse_x
+        mousey = pyxel.mouse_y
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            if mousex > 105 and mousex < 128 and mousey > 65 and mousey < 75:
+                self.estado = "jogo"
+            if mousex > 105 and mousex < 152 and mousey > 75 and mousey < 87:
+                self.estado = "controle"
+            if mousex > 105 and mousex < 125 and mousey > 89 and mousey < 100:
+                pyxel.quit()
+
+    def draw_menu(self):
+        pyxel.cls(0)
+        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
+
+    def update_jogo(self):
         self.mover(self.seguranca  ,pyxel.KEY_W,pyxel.KEY_S,pyxel.KEY_A,pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+
+    def draw_jogo(self):
         
-    def draw(self):
         pyxel.cls(3)
         self.seguranca.draw()
+        self.zumbi.draw()
+
+
+    def update_controle(self):
+        if pyxel.btnp(pyxel.KEY_RETURN):
+            self.estado = "menu"
+            
+    def draw_controle(self):
+        pyxel.cls(2)
+
+    def update(self):
+        if self.estado == "menu":
+            self.update_menu()
+        elif self.estado == "jogo":
+            self.update_jogo()
+        elif self.estado == "controle":
+            self.update_controle()
+
+    def draw(self):
+        if self.estado == "menu":
+            self.draw_menu()
+        elif self.estado == "jogo":
+            self.draw_jogo()
+        elif self.estado == "controle":
+            self.draw_controle()
+
 Jogo()
-    
-    
