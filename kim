@@ -1,4 +1,6 @@
 import pyxel
+import math
+
 class Personagem:
     def __init__(self ,x ,y , largura, altura, cor, spritel, spritec):
         self.x1=x
@@ -16,7 +18,9 @@ class Personagem:
         self.andando = False
         self.olhando_esquerda = False
         self.direcao = "baixo"
-
+        
+        self.x2 = self.x1 + self.largura
+        self.y2 = self.y1 + self.altura
  
     def mover(self,dx,dy):
         self.x1 += dx
@@ -65,15 +69,60 @@ class Personagem:
 
         pyxel.blt(self.x1, self.y1, 0, u, v, largura, self.spritel, self.cor)                     
 
+
+class Zumbi(Personagem):
+    def __init__(self, x, y, largura, altura, cor, spritel, spritec, velocidademov):
+        Personagem.__init__(self, x, y, largura, altura, cor, spritel, spritec)   #essa linha serve para herdar tudo da classe personagem, sem ter q escrever tudo dnv
+        self.velocidademov = velocidademov
+
+
+    def seguir(self, alvo):
+        dx = alvo.x1 - self.x1
+        dy = alvo.y1 - self.y1
+
+        distancia = math.hypot(dx, dy)    #hypot calcula a hopotenusa das coordenadas
+
+        if distancia > 1:
+            dx = (dx / distancia) * self.velocidademov
+            dy = (dy / distancia) * self.velocidademov
+        else:
+            dx = 0
+            dy = 0
+
+        self.mover(dx, dy)
+
+    def draw(self):     #tentativa de fazer os sprites dos zumbis funcionarem!
+        u = self.frame_atual * self.spritel
+
+        if self.direcao == "baixo":
+            v = 0
+        elif self.direcao == "cima":
+            v = self.spritel
+        else:
+            v = self.spritel * 2
+
+        if (self.direcao == "lado" and self.olhando_esquerda):
+            largura = -self.spritel 
+        else:
+            largura = self.spritel    #faz virar para o lado esquerdo direito!
+
+        pyxel.blt(self.x1, self.y1, 1, u, v, largura, self.spritel, self.cor)  #e so colocar o valor 1, para usar a outra biblioteca de imagem
+
+
 class Jogo:
     def __init__(self):
         pyxel.init(256, 150, "Deixado Para Morrer", fps=30)
-        self.c = 0
         pyxel.images[0].load(0, 0, "personagem.png")
+        pyxel.images[1].load(0, 0, "zumbis.png")
+        pyxel.images[2].load(0, 0, "menu.png")
+
+
         self.estado = "menu"
 
         self.seguranca = Personagem(10, 10, 20, 20, 8, 20, 4)
-        
+        self.zumbi = Zumbi(200, 100, 20, 20, 8, 20, 4, 0.7)
+
+        self.vida_seg = 100
                
         pyxel.run(self.update,self.draw)
     
@@ -89,6 +138,23 @@ class Jogo:
         if pyxel.btn(right):
             dx = 1
         obj.mover(dx,dy)
+
+    def colisao(self,obj1,obj2):
+        self.colisaoX = (obj2.x1 <= obj1.x1 and obj1.x1 <= obj2.x2) or (obj2.x1 <= obj1.x2 and obj1.x2 <= obj2.x2) 
+        self.colisaoY = (obj2.y1 <= obj1.y1 and obj1.y1 <= obj2.y2) or (obj2.y1 <= obj1.y2 and obj1.y2 <= obj2.y2)
+        if self.colisaoX and self.colisaoY:
+            return True
+        else:
+            return False
+
+    def vida_segurança(self):
+        if self.colisaoX and self.colisaoY:
+            self.vida_seg -= 1
+        if self.vida_seg == 0:
+            self.seguranca = Personagem(1000, 1000, 20, 20, 8, 20, 4)
+            
+    def vida_zumbis(self):
+        pass
 
     def update_menu(self):
         self.visible = True
@@ -107,16 +173,28 @@ class Jogo:
     def draw_menu(self):
         pyxel.cls(0)
         pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
+        pyxel.blt(0, 0, 2, 256, 150, 256, 150)
 
     def update_jogo(self):
         self.mover(self.seguranca  ,pyxel.KEY_W,pyxel.KEY_S,pyxel.KEY_A,pyxel.KEY_D)
-        
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+
     def draw_jogo(self):
+        
         pyxel.cls(3)
         self.seguranca.draw()
+        self.zumbi.draw()
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
 
     def update_controle(self):
-        if pyxel.btnp(pyxel.KEY_BACKSPACE):
+        if pyxel.btnp(pyxel.KEY_RETURN):
             self.estado = "menu"
             
     def draw_controle(self):
@@ -137,7 +215,5 @@ class Jogo:
             self.draw_jogo()
         elif self.estado == "controle":
             self.draw_controle()
-       
+
 Jogo()
-    
-    
