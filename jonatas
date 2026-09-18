@@ -42,14 +42,21 @@ class Tiro:
             return 0, 0, False
         return self.vx, self.vy, True
 
+    def draw(self):
+        pyxel.circ(self.x+self.vx,self.y+self.vy,1,7)
+
+
 
 class Jogo:
     def __init__(self):
         pyxel.init(256, 150, title="Jogo")
         self.personagem = Personagem(123,70,10,10,8)
 
+        self.vx, self.vy = 0, 0
+
         self.mousey, self.mousex = 0, 0
         self.atirando = False
+        self.tiroobj = None
         
         pyxel.run(self.update, self.draw)
 
@@ -71,9 +78,11 @@ class Jogo:
             self.atirando = True
             self.mousex = pyxel.mouse_x
             self.mousey = pyxel.mouse_y
+            self.vx, self.vy = 0, 0
 
         if self.atirando:
-            aux, temp, self.atirando = Tiro(self.personagem.x,self.personagem.y,self.vx,self.vy, self.mousex, self.mousey)
+            self.tiroobj = Tiro(self.personagem.x,self.personagem.y,self.vx,self.vy, self.mousex, self.mousey)
+            aux, temp, self.atirando = self.tiroobj.update()
             self.vx = aux
             self.vy = temp
 
@@ -82,8 +91,8 @@ class Jogo:
 
         self.personagem.draw()
 
-        if self.atirando:
-            pyxel.circ(self.personagem.x+self.vx,self.personagem.y+self.vy,1,7)
+        if self.atirando and self.tiroobj:
+            self.tiroobj.draw()
 
 #        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
 
