@@ -1,0 +1,277 @@
+import pyxel
+import math
+
+class Personagem:
+    def __init__(self ,x ,y , largura, altura, cor, spritel, spritec):
+        self.x1=x
+        self.y1=y
+        self.largura=largura
+        self.altura=altura
+        self.cor = cor
+        self.spritel = spritel #linha
+        self.spritec = spritec #coluna
+
+        #animacao
+        self.frame_atual = 0
+        self.cont = 0
+        self.velocidade = 6
+        self.andando = False
+        self.olhando_esquerda = False
+        self.direcao = "baixo"
+        
+        self.x2 = self.x1 + self.largura
+        self.y2 = self.y1 + self.altura
+ 
+    def mover(self,dx,dy):
+        self.x1 += dx
+        self.y1 += dy
+
+        self.andando = (dx != 0 or dy != 0)
+        if dy < 0:
+            self.direcao = "cima"
+        elif dy > 0:
+            self.direcao = "baixo"
+        elif dx != 0:
+            self.direcao = "lado"
+
+
+        if dx < 0:
+            self.olhando_esquerda = True
+        elif dx > 0:
+            self.olhando_esquerda = False
+
+        self.animar()
+
+    def animar(self):
+        if self.andando == True: 
+            self.cont += 1
+            if self.cont == self.velocidade:
+                self.cont = 0
+                self.frame_atual = (self.frame_atual + 1) % self.spritec
+
+        else:
+            self.frame_atual = 0 
+        
+    def draw(self):
+        u = self.frame_atual * self.spritel
+
+        if self.direcao == "baixo":
+            v = 0
+        elif self.direcao == "cima":
+            v = self.spritel
+        else:
+            v = self.spritel * 2
+
+        if (self.direcao == "lado" and self.olhando_esquerda):
+            largura = -self.spritel 
+        else:
+            largura = self.spritel    #faz virar para o lado esquerdo direito!
+
+        pyxel.blt(self.x1, self.y1, 0, u, v, largura, self.spritel, self.cor)                     
+
+
+class Zumbi(Personagem):
+    def __init__(self, x, y, largura, altura, cor, spritel, spritec, velocidademov):
+        Personagem.__init__(self, x, y, largura, altura, cor, spritel, spritec)   #essa linha serve para herdar tudo da classe personagem, sem ter q escrever tudo dnv
+        self.velocidademov = velocidademov
+
+
+    def seguir(self, alvo):
+        dx = alvo.x1 - self.x1
+        dy = alvo.y1 - self.y1
+
+        distancia = math.hypot(dx, dy)    #hypot calcula a hopotenusa das coordenadas
+
+        if distancia > 1:
+            dx = (dx / distancia) * self.velocidademov
+            dy = (dy / distancia) * self.velocidademov
+        else:
+            dx = 0
+            dy = 0
+
+        self.mover(dx, dy)
+
+    def draw(self):     #tentativa de fazer os sprites dos zumbis funcionarem!
+        u = self.frame_atual * self.spritel
+
+        if self.direcao == "baixo":
+            v = 0
+        elif self.direcao == "cima":
+            v = self.spritel
+        else:
+            v = self.spritel * 2
+
+        if (self.direcao == "lado" and self.olhando_esquerda):
+            largura = -self.spritel 
+        else:
+            largura = self.spritel    #faz virar para o lado esquerdo direito!
+
+        pyxel.blt(self.x1, self.y1, 1, u, v, largura, self.spritel, self.cor)  #e so colocar o valor 1, para usar a outra biblioteca de imagem
+
+class Tiro:
+    def __init__(self, x, y, mousex, mousey):
+        self.x = x
+        self.y = y
+
+        dx = mousex - x
+        dy = mousey - y
+        distancia = math.hypot(dx, dy)
+        
+        if distancia > 0:
+            self.vx = (dx / distancia) * 4
+            self.vy = (dy / distancia) * 4
+        else:
+            self.vx, self.vy = 0, 0
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+
+        if self.x < 0 or self.x > 256 or self.y < 0 or self.y > 150:
+            return False
+        return True
+
+    def draw(self):
+        pyxel.circ(self.x, self.y, 1, 7)
+
+class Jogo:
+    def __init__(self):
+        pyxel.init(256, 150, "Deixado Para Morrer", fps=30)
+        #pyxel.images[0].load(0, 0, "personagem.png")
+        #pyxel.images[1].load(0, 0, "zumbis.png")
+
+        pyxel.images[2].load(0, 0, r"C:\\Users\\Windows\\Downloads\\menu.png.png") # COLOQUEI O CAMINHO COMPLETO DA IMAGEM, É MAIS GARANTIDO
+
+        self.estado = "menu"
+
+        self.seguranca = Personagem(10, 10, 20, 20, 8, 20, 4)
+        self.zumbi = Zumbi(200, 100, 20, 20, 8, 20, 4, 0.7)
+
+        self.vida_seg = 100
+        self.vida_zumb = 20
+
+        self.lista_tiros = []
+        self.cooldown_tiro = 0
+               
+        pyxel.run(self.update,self.draw)
+    
+    def mover(self,obj,up,down,left,right):
+        dx=0
+        dy=0
+        if pyxel.btn(up):
+            dy = -1
+        if pyxel.btn(down):
+            dy = 1
+        if pyxel.btn(left):
+            dx = -1
+        if pyxel.btn(right):
+            dx = 1
+        obj.mover(dx,dy)
+
+    def colisao_seg_zumb(self,obj1,obj2):
+        self.colisaoX = (obj2.x1 <= obj1.x1 and obj1.x1 <= obj2.x2) or (obj2.x1 <= obj1.x2 and obj1.x2 <= obj2.x2) 
+        self.colisaoY = (obj2.y1 <= obj1.y1 and obj1.y1 <= obj2.y2) or (obj2.y1 <= obj1.y2 and obj1.y2 <= obj2.y2)
+        if self.colisaoX and self.colisaoY:
+            return True
+        else:
+            return False
+
+    def colisao_zumb_tiro(self,obj1,tiro):
+        colisaoX = (obj1.x1 <= tiro.x <= obj1.x2) 
+        colisaoY = (obj1.y1 <= tiro.y <= obj1.y2)
+        return colisaoX and colisaoY
+
+    def vida_segurança(self):
+        if self.colisaoX and self.colisaoY:
+            self.vida_seg -= 1
+        if self.vida_seg == 0:
+            self.seguranca = Personagem(1000, 1000, 20, 20, 8, 20, 4)
+            
+    def vida_zumbis(self):
+        self.vida_zumb -= 1
+        if self.vida_zumb == 0:
+            self.zumbi = Zumbi(0, 0, 0, 0, 0, 0, 0, 0)
+
+    def update_menu(self):
+        self.visible = True
+                              
+        pyxel.mouse(self.visible)
+        mousex = pyxel.mouse_x
+        mousey = pyxel.mouse_y
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            if mousex > 14 and mousex < 73 and mousey > 59 and mousey < 71:
+                self.estado = "jogo"
+            if mousex > 14 and mousex < 73 and mousey > 73 and mousey < 85:
+                self.estado = "controle"
+            if mousex > 14 and mousex < 73 and mousey > 87 and mousey < 99:
+                pyxel.quit()
+
+    def draw_menu(self):
+        pyxel.blt(0, 0, 2, 0, 0, 256, 150)
+
+    def update_jogo(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+    def draw_jogo(self):
+        pyxel.cls(3)
+        self.seguranca.draw()
+        self.zumbi.draw()
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+                tiro.draw()
+
+    def update_controle(self):
+        if pyxel.btnp(pyxel.KEY_RETURN):
+            self.estado = "menu"
+            
+    def draw_controle(self):
+        pyxel.cls(2)
+
+    def update(self):
+        if self.estado == "menu":
+            self.update_menu()
+        elif self.estado == "jogo":
+            self.update_jogo()
+        elif self.estado == "controle":
+            self.update_controle()
+
+    def draw(self):
+        if self.estado == "menu":
+            self.draw_menu()
+        elif self.estado == "jogo":
+            self.draw_jogo()
+        elif self.estado == "controle":
+            self.draw_controle()
+
+Jogo()
