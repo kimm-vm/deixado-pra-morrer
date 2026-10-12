@@ -1,8 +1,62 @@
 import pyxel
 import math
 
+
+PAREDES = {
+    "fase1": [   #x, y, largura, altura
+        (0, 0, 113, 46), 
+        (113, 0, 86, 31),  
+        (199, 0, 200, 44),    
+        (0, 148, 300, 50),  
+        (-3, 0, 1, 150),  
+        (240, 0, 1, 150),
+        (0, 85, 32, 75),
+        (220, 114, 20, 20),
+        
+    ],
+
+    "fase2": [
+        (0,0,25,150),
+        (0,0,256,13),
+        (50,52,176,20),
+        (50,52,1,150),
+        (250,0,1,150),
+        (179,110,100,100),
+        (152,70,1,100),
+
+    ],
+
+
+
+    "fase3": [
+        (43, 28, 1, 94),
+        (43, 35, 200, 1),
+        (213, 28, 1, 94),
+        (43, 120, 200, 1),
+        (48, 35, 19, 10),
+        (102, 35, 53, 10),
+        (102, 35, 53, 10),
+        (90, 77, 65, 6),
+        (93, 109, 50, 12),
+        (200, 77, 20, 80),
+
+    ],
+
+
+    "fase4": [
+        (0, 12, 256, 12),
+        (32, 45, 49, 25),
+        (174, 45, 49, 25),
+        (32, 96, 49, 25),
+        (174, 96, 49, 25),
+        (108, 74, 38, 18),
+
+    ]
+    
+}
+
 class Personagem:
-    def __init__(self ,x ,y , largura, altura, cor, spritel, spritec):
+    def __init__(self ,x ,y , largura, altura, cor, spritel, spritec, img):
         self.x1=x
         self.y1=y
         self.largura=largura
@@ -10,6 +64,7 @@ class Personagem:
         self.cor = cor
         self.spritel = spritel #linha
         self.spritec = spritec #coluna
+        self.images = img
 
         #animacao
         self.frame_atual = 0
@@ -18,7 +73,14 @@ class Personagem:
         self.andando = False
         self.olhando_esquerda = False
         self.direcao = "baixo"
+        
+        self.x2 = self.x1 + self.largura
+        self.y2 = self.y1 + self.altura
 
+        self.hit_x = 0
+        self.hit_y = 0
+        self.hit_l = 17
+        self.hit_a = 20
  
     def mover(self,dx,dy):
         self.x1 += dx
@@ -65,14 +127,15 @@ class Personagem:
         else:
             largura = self.spritel    #faz virar para o lado esquerdo direito!
 
-        pyxel.blt(self.x1, self.y1, 0, u, v, largura, self.spritel, self.cor)                     
-
+        pyxel.blt(self.x1, self.y1, self.images, u, v, largura, self.spritel, self.cor)                     
 
 class Zumbi(Personagem):
-    def __init__(self, x, y, largura, altura, cor, spritel, spritec, velocidademov):
-        Personagem.__init__(self, x, y, largura, altura, cor, spritel, spritec)   #essa linha serve para herdar tudo da classe personagem, sem ter q escrever tudo dnv
+    def __init__(self, x, y, largura, altura, cor, spritel, spritec, velocidademov, img):
+        Personagem.__init__(self, x, y, largura, altura, cor, spritel, spritec,img)   #essa linha serve para herdar tudo da classe personagem, sem ter q escrever tudo dnv
         self.velocidademov = velocidademov
 
+        self.img3 = img
+        self.vida = 1
 
     def seguir(self, alvo):
         dx = alvo.x1 - self.x1
@@ -104,20 +167,152 @@ class Zumbi(Personagem):
         else:
             largura = self.spritel    #faz virar para o lado esquerdo direito!
 
-        pyxel.blt(self.x1, self.y1, 1, u, v, largura, self.spritel, self.cor)  #e so colocar o valor 1, para usar a outra biblioteca de imagem
+        pyxel.blt(self.x1, self.y1, self.img3, u, v, largura, self.spritel, self.cor)  #e so colocar o valor 1, para usar a outra biblioteca de imagem
 
+class Tiro:
+    def __init__(self, x, y, mousex, mousey):
+        self.x = x
+        self.y = y
+
+        dx = mousex - x
+        dy = mousey - y
+        distancia = math.hypot(dx, dy)
+        
+        if distancia > 0:
+            self.vx = (dx / distancia) * 4
+            self.vy = (dy / distancia) * 4
+        else:
+            self.vx, self.vy = 0, 0
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+
+        if self.x < 0 or self.x > 256 or self.y < 0 or self.y > 150:
+            return False
+        return True
+
+    def draw(self):
+        pyxel.circ(self.x, self.y, 1, 7)
 
 class Jogo:
     def __init__(self):
         pyxel.init(256, 150, "Deixado Para Morrer", fps=30)
-        pyxel.images[0].load(0, 0, "personagem.png")
-        pyxel.images[1].load(0, 0, "zumbis.png")
+        self.img1 = pyxel.Image(256, 150)
+        self.img1.load(0,0,"menu.png")
+        
+        self.img2 = pyxel.Image(80,60)
+        self.img2.load(0, 0, "personagem arma.png")
+        
+        self.img3 = pyxel.Image(80,60)
+        self.img3.load(0, 0, "zumbis.png")
 
+        self.img4 = pyxel.Image(256, 150)
+        self.img4.load(0,0,"fase1.png")
 
+        self.img5 = pyxel.Image(256, 150)
+        self.img5.load(0,0,"fase2.png")
+
+        self.img6 = pyxel.Image(256, 150)
+        self.img6.load(0,0,"fase3.png")
+
+        self.img7 = pyxel.Image(256, 150)
+        self.img7.load(0,0,"fase4.png")
+
+        self.img8 = pyxel.Image(256, 150)
+        self.img8.load(0,0,"fase5.png")
+
+        self.img9 = pyxel.Image(256, 150)
+        self.img9.load(0,0,"fase6.png")
+
+        self.img10 = pyxel.Image(256, 150)
+        self.img10.load(0,0,"fase7.png")
+
+        self.img11 = pyxel.Image(80,60)
+        self.img11.load(0,0,"personagem agachado.png")
+        
         self.estado = "menu"
+        self.debug = False
+        
+        self.seguranca = Personagem(40, 63, 20, 20, 8, 20, 4, self.img2)
 
-        self.seguranca = Personagem(10, 10, 20, 20, 8, 20, 4)
-        self.zumbi = Zumbi(200, 100, 20, 20, 8, 20, 4, 0.7)
+        self.zumbi = Zumbi(200, 100, 20, 20, 8, 20, 4, 0.7, self.img3)
+
+        self.zumbis_extras = {
+            "fase3": [
+                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+            ],
+
+            "fase4": [
+                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(90, 100, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(120, 80, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(110, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(80, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(70, 150, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
+            ],
+
+            "fase5": [
+                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(90, 100, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(120, 80, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(110, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(80, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(70, 150, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
+            ],
+
+            "fase6": [
+                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(90, 100, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(120, 80, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(110, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(80, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(70, 150, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
+            ],
+
+            "fase7": [
+                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(90, 100, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(120, 80, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(110, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(80, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(70, 150, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(155, 95, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(105, 125, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(95, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(125, 85, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(115, 115, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(85, 65, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(75, 155, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(65, 55, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(165, 75, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(55, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
+            ]
+        
+        }
+
+        self.vida_seg = 100
+        self.vida_zumb = 1
+
+        self.lista_tiros = []
+        self.cooldown_tiro = 0
                
         pyxel.run(self.update,self.draw)
     
@@ -132,37 +327,62 @@ class Jogo:
             dx = -1
         if pyxel.btn(right):
             dx = 1
+
+        if dx != 0 and self.bate_na_parede(obj, dx, 0):
+            dx = 0
+        if dy != 0 and self.bate_na_parede(obj, dx, dy):
+            dy = 0
+
         obj.mover(dx,dy)
+
+    def bate_na_parede(self, obj, dx, dy):
+        x = obj.x1 + dx + obj.hit_x
+        y = obj.y1 + dy + obj.hit_y
+        for px, py, pl, pa in PAREDES.get(self.estado, []):
+            if x < px + pl and x + obj.hit_l > px and y < py + pa and y + obj.hit_a > py:
+                return True
+        return False
+
+    def colisao_seg_zumb(self,obj1,obj2):
+        self.colisaoX = (obj2.x1 <= obj1.x1 and obj1.x1 <= obj2.x2) or (obj2.x1 <= obj1.x2 and obj1.x2 <= obj2.x2) 
+        self.colisaoY = (obj2.y1 <= obj1.y1 and obj1.y1 <= obj2.y2) or (obj2.y1 <= obj1.y2 and obj1.y2 <= obj2.y2)
+        if self.colisaoX and self.colisaoY:
+            return False
+        else:
+            return False
+
+    def colisao_zumb_tiro(self,obj1,tiro):
+        colisaoX = (obj1.x1 <= tiro.x <= obj1.x2) 
+        colisaoY = (obj1.y1 <= tiro.y <= obj1.y2)
+        return colisaoX and colisaoY
+
+    def vida_segurança(self):
+        if self.colisaoX and self.colisaoY:
+            self.vida_seg -= 1
+        if self.vida_seg == 0:
+            self.seguranca = Personagem(1000, 1000, 20, 20, 8, 20, 4,self.img2)
+            
+    def vida_zumbis(self):
+        self.vida_zumb -= 1
+        if self.vida_zumb == 0:
+            self.zumbi = Zumbi(0, 0, 0, 0, 0, 0, 0, 0,self.img3)
 
     def update_menu(self):
         self.visible = True
                               
         pyxel.mouse(self.visible)
-        mousex = pyxel.mouse_x
-        mousey = pyxel.mouse_y
+        self.mousex = pyxel.mouse_x
+        self.mousey = pyxel.mouse_y
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            if mousex > 105 and mousex < 128 and mousey > 65 and mousey < 75:
-                self.estado = "jogo"
-            if mousex > 105 and mousex < 152 and mousey > 75 and mousey < 87:
+            if self.mousex > 14 and self.mousex < 73 and self.mousey > 59 and self.mousey < 71:
+                self.estado = "fase1"
+            if self.mousex > 14 and self.mousex < 73 and self.mousey > 73 and self.mousey < 85:
                 self.estado = "controle"
-            if mousex > 105 and mousex < 125 and mousey > 89 and mousey < 100:
+            if self.mousex > 14 and self.mousex < 73 and self.mousey > 87 and self.mousey < 99:
                 pyxel.quit()
 
     def draw_menu(self):
-        pyxel.cls(0)
-        pyxel.text(110, 70, 'Jogar\n\nEstatísticas\n\nSair', 7)
-
-    def update_jogo(self):
-        self.mover(self.seguranca  ,pyxel.KEY_W,pyxel.KEY_S,pyxel.KEY_A,pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-
-    def draw_jogo(self):
-        
-        pyxel.cls(3)
-        self.seguranca.draw()
-        self.zumbi.draw()
-
+        pyxel.blt(0, 0, self.img1, 0, 0, 256, 150)
 
     def update_controle(self):
         if pyxel.btnp(pyxel.KEY_RETURN):
@@ -171,20 +391,448 @@ class Jogo:
     def draw_controle(self):
         pyxel.cls(2)
 
+    def update_fase1(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.vida_zumb == 0:
+            if self.seguranca.x1 > 112 and self.seguranca.x1 < 128 and self.seguranca.y1 > 37 and self.seguranca.y1 < 50 and pyxel.btn(pyxel.KEY_W):
+                self.estado = "fase2"
+                self.seguranca.x1 = 32
+                self.seguranca.y1 = 130
+
+    def draw_fase1(self):
+        pyxel.blt(0, 0, self.img4, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+                tiro.draw()
+
+    def update_fase2(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.seguranca.y1 == 140 and (self.seguranca.y1 > 33 and self.seguranca.y1 < 51) and pyxel.btn(pyxel.KEY_S):
+            
+            self.estado = "fase1"
+            self.seguranca.x1 = 120
+            self.seguranca.y1 = 43
+            self.zumbi.x1 = 120
+
+        if self.seguranca.y1 == 140 and (self.seguranca.x1 > 152 and self.seguranca.x1 < 179) and pyxel.btn(pyxel.KEY_S):
+            self.estado = "fase3"
+            self.seguranca.x1 = 72
+            self.seguranca.y1 = 60
+            self.zumbi.x1 = 80
+    
+    def draw_fase2(self):
+        
+        pyxel.blt(0, 0, self.img5, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+        pyxel.rect(254,80,1,36,0)
+        pyxel.rect(254,30,1,40,0)
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_fase3(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.seguranca.y1 == 10 and (self.seguranca.y1 > 187 and self.seguranca.y1 < 206) and pyxel.btn(pyxel.KEY_A):
+            self.estado = "fase2"
+            self.seguranca.x1 = 256
+            self.zumbi.x1 = 296
+
+        if self.seguranca.x1 > 190 and self.seguranca.x1 < 210  and (self.seguranca.y1 > 55 and self.seguranca.y1 < 73) and pyxel.btn(pyxel.KEY_D):
+            self.estado = "fase4"
+            self.seguranca.x1 = 0
+            self.zumbi.x1 = -40
+    
+    def draw_fase3(self):
+        pyxel.blt(0, 0, self.img6, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+        pyxel.rect(2,30,1,40,2)
+        pyxel.rect(254,80,1,36,0)
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_fase4(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.seguranca.x1 == 2 and (self.seguranca.y1 > 77 and self.seguranca.y1 < 114) and pyxel.btn(pyxel.KEY_A):
+            self.estado = "fase3"
+            self.seguranca.x1 = 256
+            self.zumbi.x1 = 296
+
+        if self.seguranca.y1 == 41 and (self.seguranca.x1 > 109 and self.seguranca.x1 < 147) and pyxel.btn(pyxel.KEY_W):
+            self.estado = "fase5"
+            self.seguranca.y1 = 150
+            self.zumbi.y1 = 190
+    
+    def draw_fase4(self):
+        pyxel.blt(0, 0, self.img7, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_fase5(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.seguranca.y1 == 148 and (self.seguranca.x1 > 109 and self.seguranca.x1 < 147) and pyxel.btn(pyxel.KEY_S):
+            self.estado = "fase4"
+            self.seguranca.y1 = 2
+            self.zumbi.y1 = -40
+
+        if self.seguranca.y1 == 2 and (self.seguranca.x1 > 40 and self.seguranca.x1 < 80) and pyxel.btn(pyxel.KEY_W):
+            self.estado = "fase6"
+            self.seguranca.y1 = 150
+            self.zumbi.y1 = 190
+    
+    def draw_fase5(self):
+        pyxel.blt(0, 0, self.img8, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+        pyxel.rect(200,148,40,1,0)
+        pyxel.rect(60,2,40,1,0)
+        
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_fase6(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.seguranca.y1 == 150 and (self.seguranca.x1 > 40 and self.seguranca.x1 < 80) and pyxel.btn(pyxel.KEY_S):
+            self.estado = "fase5"
+            self.seguranca.y1 = 2
+            self.zumbi.y1 = -40
+
+        if self.seguranca.y1 == 150 and (self.seguranca.x1 > 150 and self.seguranca.x1 < 190) and pyxel.btn(pyxel.KEY_S):
+            self.estado = "fase7"
+            self.seguranca.y1 = 2
+            self.zumbi.y1 = -40
+    
+    def draw_fase6(self):
+        pyxel.blt(0, 0, self.img9, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+        pyxel.rect(60,148,40,1,0)
+        pyxel.rect(170,148,40,1,0)
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_fase7(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.zumbi.seguir(self.seguranca)
+
+        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
+            self.vida_segurança()
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
+            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
+            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
+            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
+            self.lista_tiros.append(novo_tiro)
+
+            self.cooldown_tiro = 15
+
+        tiros_ativos = []
+        for tiro in self.lista_tiros:
+            na_tela = tiro.update()
+            
+            if self.colisao_zumb_tiro(self.zumbi, tiro):
+                self.vida_zumbis()
+                na_tela = False 
+                
+            if na_tela:
+                tiros_ativos.append(tiro)
+                
+        self.lista_tiros = tiros_ativos
+
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
+        if self.vida_zumb == 0:
+            if self.seguranca.y1 == 2 and (self.seguranca.x1 > 150 and self.seguranca.x1 < 190) and pyxel.btn(pyxel.KEY_W):
+                self.estado = "fase6"
+                self.seguranca.y1 = 150
+                self.zumbi.y1 = 190
+    
+    def draw_fase7(self):
+        pyxel.blt(0, 0, self.img10, 0, 0, 256, 150)
+        self.seguranca.draw()
+        self.zumbi.draw()
+
+        if self.vida_seg == 0:
+            pyxel.text(110, 70, 'Voce morreu!', 7)
+
+        for tiro in self.lista_tiros:
+            tiro.draw()
+
+    def update_extras(self):
+        extras = self.zumbis_extras.get(self.estado, [])
+
+        for z in extras:
+            z.seguir(self.seguranca)
+
+        for tiro in self.lista_tiros[:]:
+            for z in extras[:]:
+                if z.x1 <= tiro.x <= z.x1 + z.largura and z.y1 <= tiro.y <= z.y1 + z.altura:
+                    z.vida -= 1
+                    if z.vida <= 0:
+                        extras.remove(z)
+                    self.lista_tiros.remove(tiro)
+                    break
+
+    def draw_extras(self):
+        for z in self.zumbis_extras.get(self.estado, []):
+            z.draw()
+
     def update(self):
+        if pyxel.btnp(pyxel.KEY_F1):
+            self.debug = not self.debug
+        
+        if self.estado == "fase2":
+            self.seguranca.images = self.img11
+        else:
+            self.seguranca.images = self.img2
+
         if self.estado == "menu":
             self.update_menu()
-        elif self.estado == "jogo":
-            self.update_jogo()
         elif self.estado == "controle":
             self.update_controle()
+        elif self.estado == "fase1":
+            self.update_fase1()
+        elif self.estado == "fase2":
+            self.update_fase2()
+        elif self.estado == "fase3":
+            self.update_fase3()
+        elif self.estado == "fase4":
+            self.update_fase4()
+        elif self.estado == "fase5":
+            self.update_fase5()
+        elif self.estado == "fase6":
+            self.update_fase6()
+        elif self.estado == "fase7":
+            self.update_fase7()
+
+        self.update_extras()
 
     def draw(self):
         if self.estado == "menu":
             self.draw_menu()
-        elif self.estado == "jogo":
-            self.draw_jogo()
         elif self.estado == "controle":
             self.draw_controle()
+        elif self.estado == "fase1":
+            self.draw_fase1()
+        elif self.estado == "fase2":
+            self.draw_fase2()
+        elif self.estado == "fase3":
+            self.draw_fase3()
+        elif self.estado == "fase4":
+            self.draw_fase4()
+        elif self.estado == "fase5":
+            self.draw_fase5()
+        elif self.estado == "fase6":
+            self.draw_fase6()
+        elif self.estado == "fase7":
+            self.draw_fase7()
+
+        self.draw_extras()
+
+        if self.debug:
+            for px, py, pl, pa in PAREDES.get(self.estado, []):
+                pyxel.rectb(px, py, pl, pa, 8)
+            pyxel.pset(self.seguranca.x1, self.seguranca.y1, 11)
 
 Jogo()
