@@ -1,6 +1,9 @@
 import pyxel
 import math
 
+DANO_ZUMBI = 5       
+COOLDOWN_DANO = 20    
+
 
 PAREDES = {
     "fase1": [   #x, y, largura, altura
@@ -50,15 +53,55 @@ PAREDES = {
         (32, 96, 49, 25),
         (174, 96, 49, 25),
         (108, 74, 38, 18),
+        (0,0,1,150),
+        (256,0,1,150),
+        (0,150,256,1)
+
+    ],
+
+        "fase5": [
+        (0, 0, 256, 18),
+        (20, 39, 39, 29),
+        (20, 97, 39, 29),
+        (196, 56, 39, 18),
+        (92, 52, 70, 40),
+        (117, 93, 36, 57),
+        (160, 131, 14, 9),
+        (205, 86, 17, 10),
+        (202, 45, 9, 10),
+        (0, 0, 1, 150),
+        (0, 150, 256, 1),
+        (256, 59, 1, 91),
+
+    ],
+
+        "fase6": [
+        (190, 29, 66, 68),
+        (0, 0, 256, 18),
+        (0, 75, 10, 7),
+        (0, 99, 2, 21),
+        (0, 0, 256, 1),
+        (0, 150, 1, 256),
 
     ]
     
 }
 
+PORTAS = {
+    "fase1": (112, 128, 29, 50,   pyxel.KEY_E, "fase2", 32, 130),
+    "fase2": (152, 179, 138, 160, pyxel.KEY_E, "fase3", 72, 60),
+    "fase3": (195, 230, 50, 80,   pyxel.KEY_E, "fase4", 0, None),
+    "fase4": (109, 147, 24, 45,   pyxel.KEY_E, "fase5", 83, 130),
+    "fase5": (240, 270, 8, 59,    pyxel.KEY_E, "fase6", 2, 40),
+}
+
+
 class Personagem:
     def __init__(self ,x ,y , largura, altura, cor, spritel, spritec, img):
         self.x1=x
         self.y1=y
+        
+        
         self.largura=largura
         self.altura=altura
         self.cor = cor
@@ -85,6 +128,8 @@ class Personagem:
     def mover(self,dx,dy):
         self.x1 += dx
         self.y1 += dy
+        self.x2 = self.x1 + self.largura
+        self.y2 = self.y1 + self.altura
 
         self.andando = (dx != 0 or dy != 0)
         if dy < 0:
@@ -137,20 +182,40 @@ class Zumbi(Personagem):
         self.img3 = img
         self.vida = 1
 
-    def seguir(self, alvo):
+    def seguir(self, alvo, outros=()):
         dx = alvo.x1 - self.x1
         dy = alvo.y1 - self.y1
 
         distancia = math.hypot(dx, dy)    #hypot calcula a hopotenusa das coordenadas
 
-        if distancia > 1:
+        if distancia > 18:   
             dx = (dx / distancia) * self.velocidademov
             dy = (dy / distancia) * self.velocidademov
         else:
             dx = 0
             dy = 0
 
+        
+        if (dx != 0 or dy != 0) and self.bate_em_outro(self.x1 + dx, self.y1 + dy, outros):
+            if not self.bate_em_outro(self.x1 + dx, self.y1, outros):
+                dy = 0
+            elif not self.bate_em_outro(self.x1, self.y1 + dy, outros):
+                dx = 0
+            else:
+                dx = 0
+                dy = 0
+
         self.mover(dx, dy)
+
+    def bate_em_outro(self, nx, ny, outros):
+        for o in outros:
+            if o is self or o.largura == 0:   
+                continue
+            nova = math.hypot(o.x1 - nx, o.y1 - ny)
+            atual = math.hypot(o.x1 - self.x1, o.y1 - self.y1)
+            if nova < 14 and nova < atual:   #
+                return True
+        return False
 
     def draw(self):     #tentativa de fazer os sprites dos zumbis funcionarem!
         u = self.frame_atual * self.spritel
@@ -230,6 +295,9 @@ class Jogo:
 
         self.img11 = pyxel.Image(80,60)
         self.img11.load(0,0,"personagem agachado.png")
+
+        self.img12 = pyxel.Image(256,150)
+        self.img12.load(0,0,"controles.png")
         
         self.estado = "menu"
         self.debug = False
@@ -240,8 +308,8 @@ class Jogo:
 
         self.zumbis_extras = {
             "fase3": [
-                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
+                Zumbi(150, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
+                Zumbi(100, 80, 20, 20, 8, 20, 4, 0.6, self.img3),
             ],
 
             "fase4": [
@@ -281,19 +349,6 @@ class Jogo:
                 Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
                 Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
                 Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
-            ],
-
-            "fase7": [
-                Zumbi(150, 90, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(100, 120, 20, 20, 8, 20, 4, 0.6, self.img3),
-                Zumbi(90, 100, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(120, 80, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(110, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(80, 60, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(70, 150, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(60, 50, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(160, 70, 20, 20, 8, 20, 4, 0.5, self.img3),
-                Zumbi(50, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
                 Zumbi(155, 95, 20, 20, 8, 20, 4, 0.5, self.img3),
                 Zumbi(105, 125, 20, 20, 8, 20, 4, 0.6, self.img3),
                 Zumbi(95, 105, 20, 20, 8, 20, 4, 0.5, self.img3),
@@ -305,11 +360,12 @@ class Jogo:
                 Zumbi(165, 75, 20, 20, 8, 20, 4, 0.5, self.img3),
                 Zumbi(55, 110, 20, 20, 8, 20, 4, 0.5, self.img3),
             ]
-        
+            
         }
 
         self.vida_seg = 100
         self.vida_zumb = 1
+        self.cooldown_dano = 0
 
         self.lista_tiros = []
         self.cooldown_tiro = 0
@@ -328,12 +384,25 @@ class Jogo:
         if pyxel.btn(right):
             dx = 1
 
-        if dx != 0 and self.bate_na_parede(obj, dx, 0):
+        if dx != 0 and (self.bate_na_parede(obj, dx, 0) or self.bate_no_zumbi(obj, dx, 0)):
             dx = 0
-        if dy != 0 and self.bate_na_parede(obj, dx, dy):
+        if dy != 0 and (self.bate_na_parede(obj, dx, dy) or self.bate_no_zumbi(obj, dx, dy)):
             dy = 0
 
         obj.mover(dx,dy)
+
+    def todos_zumbis(self):     #faz os zumbis extras terem colisao comm o personagem e com eles mesmos
+        return [self.zumbi] + self.zumbis_extras.get(self.estado, [])
+
+    def bate_no_zumbi(self, obj, dx, dy):
+        for z in self.todos_zumbis():
+            if z.largura == 0:   #zumbi morto
+                continue
+            nova = math.hypot(z.x1 - (obj.x1 + dx), z.y1 - (obj.y1 + dy))
+            atual = math.hypot(z.x1 - obj.x1, z.y1 - obj.y1)
+            if nova < 16 and nova < atual:
+                return True
+        return False
 
     def bate_na_parede(self, obj, dx, dy):
         x = obj.x1 + dx + obj.hit_x
@@ -343,29 +412,65 @@ class Jogo:
                 return True
         return False
 
-    def colisao_seg_zumb(self,obj1,obj2):
-        self.colisaoX = (obj2.x1 <= obj1.x1 and obj1.x1 <= obj2.x2) or (obj2.x1 <= obj1.x2 and obj1.x2 <= obj2.x2) 
-        self.colisaoY = (obj2.y1 <= obj1.y1 and obj1.y1 <= obj2.y2) or (obj2.y1 <= obj1.y2 and obj1.y2 <= obj2.y2)
-        if self.colisaoX and self.colisaoY:
-            return False
-        else:
-            return False
+    def colisao_seg_zumb(self):
+        s = self.seguranca
+        encostando = 0
+        for z in self.todos_zumbis():
+            if z.largura == 0:   #zumbi morto
+                continue
+            if math.hypot(z.x1 - s.x1, z.y1 - s.y1) < 20:
+                encostando += 1
+        return encostando
 
     def colisao_zumb_tiro(self,obj1,tiro):
         colisaoX = (obj1.x1 <= tiro.x <= obj1.x2) 
         colisaoY = (obj1.y1 <= tiro.y <= obj1.y2)
         return colisaoX and colisaoY
 
-    def vida_segurança(self):
-        if self.colisaoX and self.colisaoY:
-            self.vida_seg -= 1
+    def vida_segurança(self, quantidade=1):
+        self.vida_seg = max(0, self.vida_seg - DANO_ZUMBI * quantidade)
         if self.vida_seg == 0:
             self.seguranca = Personagem(1000, 1000, 20, 20, 8, 20, 4,self.img2)
+
+    def aplicar_dano(self):
+        if self.cooldown_dano > 0:
+            self.cooldown_dano -= 1
+
+        if self.vida_seg <= 0:
+            return
+
+        encostando = self.colisao_seg_zumb()
+        if encostando > 0 and self.cooldown_dano == 0:
+            self.vida_segurança(encostando)
+            self.cooldown_dano = COOLDOWN_DANO
             
     def vida_zumbis(self):
         self.vida_zumb -= 1
         if self.vida_zumb == 0:
             self.zumbi = Zumbi(0, 0, 0, 0, 0, 0, 0, 0,self.img3)
+
+    def fase_limpa(self):
+        
+        principal_morto = self.zumbi.largura == 0
+        extras_vivos = len(self.zumbis_extras.get(self.estado, [])) > 0
+        return principal_morto and not extras_vivos
+
+    def checar_porta(self):
+        porta = PORTAS.get(self.estado)
+        if porta is None or self.vida_seg <= 0 or not self.fase_limpa():
+            return
+
+        x_min, x_max, y_min, y_max, tecla, destino, novo_x, novo_y = porta
+        s = self.seguranca
+        if x_min <= s.x1 <= x_max and y_min <= s.y1 <= y_max and pyxel.btnp(tecla):
+            self.estado = destino
+            if novo_x is not None:
+                s.x1 = novo_x
+            if novo_y is not None:
+                s.y1 = novo_y
+            s.x2 = s.x1 + s.largura
+            s.y2 = s.y1 + s.altura
+            self.lista_tiros = []
 
     def update_menu(self):
         self.visible = True
@@ -389,14 +494,11 @@ class Jogo:
             self.estado = "menu"
             
     def draw_controle(self):
-        pyxel.cls(2)
+        pyxel.blt(0, 0, self.img12, 0, 0, 256, 150)
 
-    def update_fase1(self):
-        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
+    def atualizar_tiros(self):
+    
+        self.zumbi.seguir(self.seguranca, self.todos_zumbis())
 
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
             centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
@@ -422,11 +524,9 @@ class Jogo:
         if self.cooldown_tiro > 0:
             self.cooldown_tiro -= 1
 
-        if self.vida_zumb == 0:
-            if self.seguranca.x1 > 112 and self.seguranca.x1 < 128 and self.seguranca.y1 > 37 and self.seguranca.y1 < 50 and pyxel.btn(pyxel.KEY_W):
-                self.estado = "fase2"
-                self.seguranca.x1 = 32
-                self.seguranca.y1 = 130
+    def update_fase1(self):
+        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
+        self.atualizar_tiros()
 
     def draw_fase1(self):
         pyxel.blt(0, 0, self.img4, 0, 0, 256, 150)
@@ -441,47 +541,7 @@ class Jogo:
 
     def update_fase2(self):
         self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.seguranca.y1 == 140 and (self.seguranca.y1 > 33 and self.seguranca.y1 < 51) and pyxel.btn(pyxel.KEY_S):
-            
-            self.estado = "fase1"
-            self.seguranca.x1 = 120
-            self.seguranca.y1 = 43
-            self.zumbi.x1 = 120
-
-        if self.seguranca.y1 == 140 and (self.seguranca.x1 > 152 and self.seguranca.x1 < 179) and pyxel.btn(pyxel.KEY_S):
-            self.estado = "fase3"
-            self.seguranca.x1 = 72
-            self.seguranca.y1 = 60
-            self.zumbi.x1 = 80
+        self.atualizar_tiros()
     
     def draw_fase2(self):
         
@@ -499,51 +559,12 @@ class Jogo:
 
     def update_fase3(self):
         self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.seguranca.y1 == 10 and (self.seguranca.y1 > 187 and self.seguranca.y1 < 206) and pyxel.btn(pyxel.KEY_A):
-            self.estado = "fase2"
-            self.seguranca.x1 = 256
-            self.zumbi.x1 = 296
-
-        if self.seguranca.x1 > 190 and self.seguranca.x1 < 210  and (self.seguranca.y1 > 55 and self.seguranca.y1 < 73) and pyxel.btn(pyxel.KEY_D):
-            self.estado = "fase4"
-            self.seguranca.x1 = 0
-            self.zumbi.x1 = -40
+        self.atualizar_tiros()
     
     def draw_fase3(self):
         pyxel.blt(0, 0, self.img6, 0, 0, 256, 150)
         self.seguranca.draw()
         self.zumbi.draw()
-        pyxel.rect(2,30,1,40,2)
-        pyxel.rect(254,80,1,36,0)
 
         if self.vida_seg == 0:
             pyxel.text(110, 70, 'Voce morreu!', 7)
@@ -553,44 +574,7 @@ class Jogo:
 
     def update_fase4(self):
         self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.seguranca.x1 == 2 and (self.seguranca.y1 > 77 and self.seguranca.y1 < 114) and pyxel.btn(pyxel.KEY_A):
-            self.estado = "fase3"
-            self.seguranca.x1 = 256
-            self.zumbi.x1 = 296
-
-        if self.seguranca.y1 == 41 and (self.seguranca.x1 > 109 and self.seguranca.x1 < 147) and pyxel.btn(pyxel.KEY_W):
-            self.estado = "fase5"
-            self.seguranca.y1 = 150
-            self.zumbi.y1 = 190
+        self.atualizar_tiros()
     
     def draw_fase4(self):
         pyxel.blt(0, 0, self.img7, 0, 0, 256, 150)
@@ -605,51 +589,12 @@ class Jogo:
 
     def update_fase5(self):
         self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.seguranca.y1 == 148 and (self.seguranca.x1 > 109 and self.seguranca.x1 < 147) and pyxel.btn(pyxel.KEY_S):
-            self.estado = "fase4"
-            self.seguranca.y1 = 2
-            self.zumbi.y1 = -40
-
-        if self.seguranca.y1 == 2 and (self.seguranca.x1 > 40 and self.seguranca.x1 < 80) and pyxel.btn(pyxel.KEY_W):
-            self.estado = "fase6"
-            self.seguranca.y1 = 150
-            self.zumbi.y1 = 190
+        self.atualizar_tiros()
     
     def draw_fase5(self):
         pyxel.blt(0, 0, self.img8, 0, 0, 256, 150)
         self.seguranca.draw()
         self.zumbi.draw()
-        pyxel.rect(200,148,40,1,0)
-        pyxel.rect(60,2,40,1,0)
         
         if self.vida_seg == 0:
             pyxel.text(110, 70, 'Voce morreu!', 7)
@@ -659,97 +604,10 @@ class Jogo:
 
     def update_fase6(self):
         self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.seguranca.y1 == 150 and (self.seguranca.x1 > 40 and self.seguranca.x1 < 80) and pyxel.btn(pyxel.KEY_S):
-            self.estado = "fase5"
-            self.seguranca.y1 = 2
-            self.zumbi.y1 = -40
-
-        if self.seguranca.y1 == 150 and (self.seguranca.x1 > 150 and self.seguranca.x1 < 190) and pyxel.btn(pyxel.KEY_S):
-            self.estado = "fase7"
-            self.seguranca.y1 = 2
-            self.zumbi.y1 = -40
+        self.atualizar_tiros()
     
     def draw_fase6(self):
         pyxel.blt(0, 0, self.img9, 0, 0, 256, 150)
-        self.seguranca.draw()
-        self.zumbi.draw()
-        pyxel.rect(60,148,40,1,0)
-        pyxel.rect(170,148,40,1,0)
-
-        if self.vida_seg == 0:
-            pyxel.text(110, 70, 'Voce morreu!', 7)
-
-        for tiro in self.lista_tiros:
-            tiro.draw()
-
-    def update_fase7(self):
-        self.mover(self.seguranca, pyxel.KEY_W, pyxel.KEY_S, pyxel.KEY_A, pyxel.KEY_D)
-        self.zumbi.seguir(self.seguranca)
-
-        if self.colisao_seg_zumb(self.seguranca,self.zumbi):
-            self.vida_segurança()
-
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.cooldown_tiro == 0:
-            centro_x = self.seguranca.x1 + (self.seguranca.largura / 2)
-            centro_y = self.seguranca.y1 + (self.seguranca.altura / 2)
-            novo_tiro = Tiro(centro_x, centro_y, pyxel.mouse_x, pyxel.mouse_y)
-            self.lista_tiros.append(novo_tiro)
-
-            self.cooldown_tiro = 15
-
-        tiros_ativos = []
-        for tiro in self.lista_tiros:
-            na_tela = tiro.update()
-            
-            if self.colisao_zumb_tiro(self.zumbi, tiro):
-                self.vida_zumbis()
-                na_tela = False 
-                
-            if na_tela:
-                tiros_ativos.append(tiro)
-                
-        self.lista_tiros = tiros_ativos
-
-        if self.cooldown_tiro > 0:
-            self.cooldown_tiro -= 1
-
-        if self.vida_zumb == 0:
-            if self.seguranca.y1 == 2 and (self.seguranca.x1 > 150 and self.seguranca.x1 < 190) and pyxel.btn(pyxel.KEY_W):
-                self.estado = "fase6"
-                self.seguranca.y1 = 150
-                self.zumbi.y1 = 190
-    
-    def draw_fase7(self):
-        pyxel.blt(0, 0, self.img10, 0, 0, 256, 150)
         self.seguranca.draw()
         self.zumbi.draw()
 
@@ -763,7 +621,7 @@ class Jogo:
         extras = self.zumbis_extras.get(self.estado, [])
 
         for z in extras:
-            z.seguir(self.seguranca)
+            z.seguir(self.seguranca, self.todos_zumbis())
 
         for tiro in self.lista_tiros[:]:
             for z in extras[:]:
@@ -803,10 +661,12 @@ class Jogo:
             self.update_fase5()
         elif self.estado == "fase6":
             self.update_fase6()
-        elif self.estado == "fase7":
-            self.update_fase7()
 
         self.update_extras()
+
+        if self.estado.startswith("fase"):
+            self.aplicar_dano()     
+            self.checar_porta()     
 
     def draw(self):
         if self.estado == "menu":
@@ -825,14 +685,17 @@ class Jogo:
             self.draw_fase5()
         elif self.estado == "fase6":
             self.draw_fase6()
-        elif self.estado == "fase7":
-            self.draw_fase7()
 
         self.draw_extras()
 
         if self.debug:
             for px, py, pl, pa in PAREDES.get(self.estado, []):
                 pyxel.rectb(px, py, pl, pa, 8)
+            porta = PORTAS.get(self.estado)
+            if porta:
+                x_min, x_max, y_min, y_max = porta[:4]
+                pyxel.rectb(x_min, y_min, x_max - x_min, y_max - y_min, 11)   #area da porta (verde)
             pyxel.pset(self.seguranca.x1, self.seguranca.y1, 11)
+            pyxel.text(2, 2, "Vida: " + str(self.vida_seg), 7)
 
 Jogo()
